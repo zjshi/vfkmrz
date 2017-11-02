@@ -35,6 +35,43 @@ usage:
     $ cat /path/exp.fastq | ./vfkmrz_fastq
 ```
 
+# fastq2fasta
+the program fastq2fasta.cpp scans fastq format inputs and convert them into fasta format outputs.
+
+usage:
+
+```shell
+    $ g++ -O3 --std=c++11 -o fastq2fasta fastq2fasta.cpp
+    $ gzip -dc /path/exp.fastq.gz | ./fastq2fasta
+```
+
+-or-
+
+```shell
+    $ zcat /path/exp.fastq.gz | ./fastq2fasta
+```
+
+-or- 
+
+```shell
+    $ cat /path/exp.fastq | ./fastq2fasta
+```
+
+# htfs_stats 
+the program htfs_stats scans inputs (fasta or fastq format) and output basic stats information about the inputs. (e.g. number of lines, number of reads and number of bases)
+
+
+```shell
+    $ g++ -O3 --std=c++11 -o htfs_stats htfs_stats.cpp
+    $ gzip -dc /path/exp.fastq.gz | ./htfs_stats -fq
+```
+
+-or-
+
+```shell
+    $ cat /path/exp.fasta | ./htfs_stats -fa
+```
+
 # notes
 standard fasta and fastq format only for inputs, otherwise failure is almost guaranteed. 
 
