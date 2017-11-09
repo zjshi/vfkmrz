@@ -14,6 +14,8 @@ constexpr auto step_size = 128 * 1024 * 1024;
 constexpr auto buffer_size = 128 * 1024 * 1024;
 
 void fasta_stats() {	
+    cerr << "read and count in fasta" << endl;
+
     vector<char> buffer(buffer_size); // buffer zone for both file reading and sequence windowing 
     char* window = buffer.data();
 	
@@ -56,6 +58,8 @@ void fasta_stats() {
 }
 
 void fastq_stats() {
+    cerr << "read and count in fastq" << endl;
+
     vector<char> buffer(buffer_size); // buffer zone for both file reading and sequence windowing 
     char* window = buffer.data();
 
@@ -107,13 +111,14 @@ void fastq_stats() {
 
 int main(int argc, char** argv){		
 	cout << argc << ": " << argv[0] << endl;
+	cout << argc << ": " << argv[1] << endl;
 
     if (argc == 1) {
 	    fastq_stats();
     } else if (argc == 2) {
-        if (strcmp(argv[1], "-fa")){
+        if (!strcmp(argv[1], "-fa")){
             fasta_stats();
-        } else if (strcmp(argv[1], "-fq")){
+        } else if (!strcmp(argv[1], "-fq")){
             fastq_stats();
         } else {
             cerr << "unknown fetal error!" << endl;

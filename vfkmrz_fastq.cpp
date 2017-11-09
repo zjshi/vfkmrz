@@ -24,8 +24,9 @@ using namespace std;
 // standard fastq format only for input, otherwise failure is almost guaranteed. 
 
 // global variable declaration starts here
-constexpr auto k = 7;
+constexpr auto k = 31;
 constexpr auto r_len = 90;
+constexpr auto offset = 31;
 
 // parameters for <unistd.h> file read; from the source of GNU coreutils wc
 constexpr auto step_size = 128 * 1024 * 1024;
@@ -41,13 +42,31 @@ constexpr auto max_l = 1000*1000*100;
 constexpr auto out_path = "./vfkmrz_fastq.out";
 
 // gigantic vectorization
-void kmer_search(vector<char>& kmers, const char* buf, int end_pos) {    
-    for (int i = 0;  i <= end_pos - k;  ++i) {
+void kmer_search(vector<char>& kmers, const char* buf, int end_pos, int ofs) {    
+    int i = 0;
+
+    for (;  i <= end_pos - k;  i+=ofs) {
         for (int j = i;  j < i+k;  ++j)
             kmers.push_back(buf[j]);
             
         kmers.push_back('\n');
     }
+
+    if (i < end_pos) {
+        for (int j = end_pos - k;  j < end_pos;  ++j)
+            kmers.push_back(buf[j]);
+           
+        kmers.push_back('\n');
+    }
+}
+
+void kmer_search(vector<char>& kmers, const char* buf, int end_pos) {
+    for (int i = 0;  i <= end_pos - k;  ++i) {
+        for (int j = i;  j < i+k;  ++j)
+            kmers.push_back(buf[j]);
+            
+        kmers.push_back('\n');
+    }   
 }
 
 // get time elapsed since when it all began in milliseconds.
@@ -87,7 +106,8 @@ void vfkmrz_fastq() {
 		}
 
         for (int i = 0;  i < bytes_read;  ++i) {
-            char c = toupper(window[i]);
+            //char c = toupper(window[i]);
+            char c = window[i];
             if (c == '\n') {
             	++n_lines;
                 ++n_lines_local;
