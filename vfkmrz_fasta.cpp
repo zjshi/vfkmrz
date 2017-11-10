@@ -21,14 +21,14 @@ using namespace std;
 // global variable declaration starts here
 
 // size of kmer
-constexpr auto k = 31;
-constexpr auto offset = 2;
+constexpr auto k = 7;
+constexpr auto offset = 1;
 // parameters for <unistd.h> file read; from the source of GNU coreutils wc
 constexpr auto step_size = 128 * 1024 * 1024;
 constexpr auto buffer_size = 128 * 1024 * 1024 + k - 1;
 
 // maximum lines when reached; also the max memory controller
-constexpr auto seg_l = 1000*1000*5;
+constexpr auto seg_l = 1000*1000*1;
 
 // maximum lines when reached the program exits; for testing or practical use
 constexpr auto max_l = 1000*1000*80;
@@ -43,7 +43,7 @@ constexpr auto organized_by_seq = false;
 // global variable declaration ends here
 
 // gigantic vectorization based kmer search
-void kmer_search(vector<char>& kmers, const char* buf, int end_pos, int ofs, bool end) {    
+void kmer_search_with_end(vector<char>& kmers, const char* buf, int end_pos, int ofs) {    
     int i = 0;
 
     for (;  i <= end_pos - k;  i+=ofs) {
@@ -53,16 +53,24 @@ void kmer_search(vector<char>& kmers, const char* buf, int end_pos, int ofs, boo
         kmers.push_back('\n');
     }
 
-    if (end) {
-        if (i < (end_pos - k + ofs)) {
-            for (int j = end_pos - k;  j < end_pos;  ++j)
-                kmers.push_back(buf[j]);
-               
-            kmers.push_back('\n');
-        }
+    if (i < (end_pos - k + ofs)) {
+        for (int j = end_pos - k;  j < end_pos;  ++j)
+            kmers.push_back(buf[j]);
+           
+        kmers.push_back('\n');
     }
 }
 
+void kmer_search(vector<char>& kmers, const char* buf, int end_pos, int ofs) {    
+    for (int i = 0;  i <= end_pos - k;  i+=ofs) {
+        for (int j = i;  j < i+k;  ++j)
+            kmers.push_back(buf[j]);
+            
+        kmers.push_back('\n');
+    }
+}
+
+/*
 void kmer_search(vector<char>& kmers, const char* buf, int end_pos) {    
     for (int i = 0;  i <= end_pos - k;  ++i) {
         for (int j = i;  j < i+k;  ++j)
@@ -72,6 +80,7 @@ void kmer_search(vector<char>& kmers, const char* buf, int end_pos) {
     }
     
 }
+*/
 
 void append_last(vector<char>& kmers, const char* buf, int end_pos) {
     int start = kmers.size() - 1 - k + end_pos;
@@ -126,7 +135,8 @@ void vfkmrz_fasta() {
 			exit(EXIT_FAILURE);
 		}
 		
-		cur_pos = residue;
+        cur_pos = residue;
+
         for (int i = residue;  i < bytes_read + residue;  ++i) {
             char c = window[i];
             if (c == '\n') {
@@ -149,7 +159,7 @@ void vfkmrz_fasta() {
             	
                 if (n_bases_local >= k) {
                     if (cur_pos >= k)
-                        kmer_search(kmers, window, cur_pos, offset, true);
+                        kmer_search_with_end(kmers, window, cur_pos, offset);
                     else {
                         append_last(kmers, window, cur_pos);
                     }
@@ -172,19 +182,17 @@ void vfkmrz_fasta() {
         	break;
         }
         
-        //n_bases = (n_bases-residue);
-        
         if (cur_pos < k) {
             residue = cur_pos;
         } else {
-        	kmer_search(kmers, window, cur_pos, offset, false);	
+            kmer_search(kmers, window, cur_pos, offset);	
             residue = (cur_pos % offset) + k - offset;
         }
         
         for (int i = 0;  i < residue;  ++i) {
-        	window[i] = window[cur_pos - residue + i];
-        }
-        
+            window[i] = window[cur_pos - residue + i];
+        }   
+
         if (n_lines_local > seg_l) {
     		fh.write(&kmers[0], kmers.size());
     		
@@ -195,7 +203,7 @@ void vfkmrz_fasta() {
     	}
     }
     
-    if (residue > 0) {
+    if (cur_pos % offset > 0) {
         append_last(kmers, window, residue);
     }
 
