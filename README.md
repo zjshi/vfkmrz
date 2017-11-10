@@ -72,6 +72,14 @@ the program htfs_stats scans inputs (fasta or fastq format) and output basic sta
     $ cat /path/exp.fasta | ./htfs_stats -fa
 ```
 
+# vfkmrz_match
+the prgram vfkmrz_match takes two list of kmers, db and query list, that have the same length, then search query list against db list and return the occurrences of db kmers in query kmers.
+
+```shell
+    $ g++ -O --std=c++14 -o vfkmrz_match vfkmrz_match.cpp | ./vfkmrz_match
+```
+
 # notes
 standard fasta and fastq format only for inputs, otherwise failure is almost guaranteed. 
-
+the programs require the compilers that are compatible with C++ 14 standards.
+all the tests have been done on clang-900.0.38
