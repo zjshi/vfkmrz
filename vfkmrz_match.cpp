@@ -161,6 +161,7 @@ void kmer_match() {
     fc = open("/Users/jasonshi/Documents/zjshi_github/beta/kmerization/vfkmrz_fastq.out", O_RDONLY);
 
     int n_kmer_per_read = 3;
+    bool has_wildcard = false;
     ska::flat_hash_map<uintmax_t, int> foot_print= {};
     
     while (true) {
@@ -183,6 +184,16 @@ void kmer_match() {
 
                 cur_pos = 0;
 
+                if (kmer_count > n_kmer_per_read) {
+                    kmer_count = 0;
+                    foot_print.clear();
+                }
+
+                if (has_wildcard) {
+                    has_wildcard = false;
+                    continue;    
+                }
+
                 if (kdb.find(seq_buf) != kdb.end()){
                     if (!foot_print[kdb[seq_buf]]) {
                         ++kdbc[seq_buf];
@@ -192,11 +203,11 @@ void kmer_match() {
                     }
                 }
                 
-                if (kmer_count > n_kmer_per_read) {
-                    kmer_count = 0;
-                    foot_print.clear();
-                }
             } else {
+                if (c == 'N') {
+                    has_wildcard = true;
+                }
+
                 seq_buf[cur_pos++] = c;
             }
         }
