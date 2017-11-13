@@ -79,6 +79,14 @@ the prgram vfkmrz_match takes two list of kmers, db and query list, that have th
     $ g++ -O --std=c++14 -o vfkmrz_match vfkmrz_match.cpp | ./vfkmrz_match
 ```
 
+# vfkmrz_bunion
+the prgram vfkmrz_bunion takes two list of kmers, specified by option of -k1 and -k2, that have the same length, then return the unique kmers for the union of k1 and k2 kmers 
+
+```shell
+    $ g++ -O --std=c++11 -o vfkmrz_bunion vfkmrz_bunion.cpp | ./vfkmrz_bunion -k1 </path/to/kmer/list1> -k2 </path/to/kmer/list2>
+```
+
+
 # notes
 standard fasta and fastq format only for inputs, otherwise failure is almost guaranteed. 
 the programs require the compilers that are compatible with C++ 14 standards.
