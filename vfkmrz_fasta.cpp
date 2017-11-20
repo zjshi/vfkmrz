@@ -21,20 +21,20 @@ using namespace std;
 // global variable declaration starts here
 
 // size of kmer
-constexpr auto k = 7;
-constexpr auto offset = 1;
+constexpr auto k = 31;
+constexpr auto offset = 31;
 // parameters for <unistd.h> file read; from the source of GNU coreutils wc
 constexpr auto step_size = 128 * 1024 * 1024;
 constexpr auto buffer_size = 128 * 1024 * 1024 + k - 1;
 
 // maximum lines when reached; also the max memory controller
-constexpr auto seg_l = 1000*1000*1;
+constexpr auto seg_l = 1000*1000*4;
 
 // maximum lines when reached the program exits; for testing or practical use
 constexpr auto max_l = 1000*1000*80;
 
 // output file path
-constexpr auto out_path = "./vfkmrz_fasta.out";
+constexpr auto out_path = "/dev/stdout";
 
 // toggle to organize kmer in the output file by each sequence or not; default false (pure kmers)
 // the option is need here because fasta file can have sequences of different lengths

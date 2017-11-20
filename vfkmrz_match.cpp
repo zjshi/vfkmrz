@@ -34,8 +34,8 @@ constexpr auto r_len = 90;
 constexpr auto n_kmer_per_read = 3;
 
 // parameters for <unistd.h> file read; from the source of GNU coreutils wc
-constexpr auto step_size = 128 * 1024 * 1024;
-constexpr auto buffer_size = 128 * 1024 * 1024;
+constexpr auto step_size = 64 * 1024 * 1024;
+constexpr auto buffer_size = 64 * 1024 * 1024;
 
 // maximum lines when reached; also the max memory controller
 constexpr auto seg_l = 1000*1000*5;
@@ -43,8 +43,10 @@ constexpr auto seg_l = 1000*1000*5;
 // maximum lines when reached the program exits; for testing or practical use
 constexpr auto max_l = 1000*1000*100;
 
+constexpr auto max_load = 10*1000*1000;
+
 // output file path
-constexpr auto out_path = "./vfkmrz_fastq.out";
+constexpr auto out_path = "/dev/stdout";
 
 // gigantic vectorization
 void kmer_search(vector<char>& kmers, const char* buf, int end_pos) {    
@@ -78,6 +80,7 @@ void kmer_match() {
 
     int field = 0;
     //unordered_map<string, uintmax_t> kdb = {};
+    //unordered_map<string, uintmax_t> kdbc = {};
 
     ska::flat_hash_map<string, uintmax_t> kdb = {};
     ska::flat_hash_map<string, uintmax_t> kdbc = {};
@@ -86,7 +89,6 @@ void kmer_match() {
     int fd;
     fd = open("/Users/jasonshi/Documents/zjshi_github/beta/kmerization/kmer31_db.txt", O_RDONLY);
 
-    auto max_load = 10*1000*1000;
     while (true) {
 
         const ssize_t bytes_read = read(fd, window, step_size);
@@ -136,6 +138,7 @@ void kmer_match() {
                 }
             }
         }
+
         
         //fh.write(&kmers[0], kmers.size());
         
@@ -146,6 +149,13 @@ void kmer_match() {
             break;
     }
     
+/*
+    for(auto it = kdb.begin(); it != kdb.end(); ++it){
+        cout << it->first << ":" << it->second << "\n";    
+    }
+
+    return;
+*/
     //fh.close();
 	
     t_start = chrono_time();
@@ -199,7 +209,7 @@ void kmer_match() {
                         ++kdbc[seq_buf];
                         foot_print[kdb[seq_buf]] = 1;    
                     } else {
-                        cout << seq_buf << "\n";    
+                        cerr << seq_buf << "\n";    
                     }
                 }
                 
@@ -221,10 +231,13 @@ void kmer_match() {
     
     close(fc); 
 
+    auto fh = fstream(out_path, ios::out | ios::binary);   
+
     for(auto it = kdbc.begin(); it != kdbc.end(); ++it){
-        if (it->second > 0)
-            cout << it->first << ":" << it->second << "\n";    
+        fh << it->first << "\t" << it->second << "\n";    
     }
+
+    fh.close();
 
     auto t_time = (chrono_time() - t_start) / 1000;
 

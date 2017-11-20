@@ -39,7 +39,8 @@ constexpr auto seg_l = 1000*1000*5;
 constexpr auto max_l = 1000*1000*100;
 
 // output file path
-constexpr auto out_path = "./vfkmrz_fastq.out";
+//constexpr auto out_path = "./vfkmrz_fastq.out";
+constexpr auto out_path = "/dev/stdout";
 
 // gigantic vectorization
 void kmer_search(vector<char>& kmers, const char* buf, int end_pos, int ofs) {    
@@ -115,7 +116,7 @@ void vfkmrz_fastq() {
                 if (l_label == 3) {
                 	// assert (cur_pos == r_len);
                 	++n_reads; 
-                	kmer_search(kmers, seq_buf, cur_pos);       
+                	kmer_search(kmers, seq_buf, cur_pos, offset);       
                 	        	
                 	l_label = cur_pos = 0;
                 } else
