@@ -34,8 +34,8 @@ constexpr auto r_len = 90;
 constexpr auto n_kmer_per_read = 3;
 
 // parameters for <unistd.h> file read; from the source of GNU coreutils wc
-constexpr auto step_size = 64 * 1024 * 1024;
-constexpr auto buffer_size = 64 * 1024 * 1024;
+constexpr auto step_size = 256 * 1024 * 1024;
+constexpr auto buffer_size = 256 * 1024 * 1024;
 
 // maximum lines when reached; also the max memory controller
 constexpr auto seg_l = 1000*1000*5;
@@ -45,18 +45,11 @@ constexpr auto max_l = 1000*1000*100;
 
 constexpr auto max_load = 10*1000*1000;
 
+// kmer database path 
+constexpr auto db_path = "/Users/jasonshi/Documents/zjshi_github/beta/kmerization/kmer31_db.txt";
+
 // output file path
 constexpr auto out_path = "/dev/stdout";
-
-// gigantic vectorization
-void kmer_search(vector<char>& kmers, const char* buf, int end_pos) {    
-    for (int i = 0;  i <= end_pos - k;  ++i) {
-        for (int j = i;  j < i+k;  ++j)
-            kmers.push_back(buf[j]);
-            
-        kmers.push_back('\n');
-    }
-}
 
 // get time elapsed since when it all began in milliseconds.
 long chrono_time() {
@@ -64,11 +57,8 @@ long chrono_time() {
     return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 }
 
-void kmer_match() {	
+void db_load(ska::flat_hash_map<string, uintmax_t>& kdb, ska::flat_hash_map<string, uintmax_t>& kdbc, char* window) {
     auto t_start = chrono_time();
-	
-    vector<char> buffer(buffer_size);
-    char* window = buffer.data();
 
     uintmax_t n_lines = 0;
 
@@ -82,12 +72,10 @@ void kmer_match() {
     //unordered_map<string, uintmax_t> kdb = {};
     //unordered_map<string, uintmax_t> kdbc = {};
 
-    ska::flat_hash_map<string, uintmax_t> kdb = {};
-    ska::flat_hash_map<string, uintmax_t> kdbc = {};
     //auto fh = fstream(out_path, ios::out | ios::binary);
 
     int fd;
-    fd = open("/Users/jasonshi/Documents/zjshi_github/beta/kmerization/kmer31_db.txt", O_RDONLY);
+    fd = open(db_path, O_RDONLY);
 
     while (true) {
 
@@ -158,25 +146,38 @@ void kmer_match() {
 */
     //fh.close();
 	
-    t_start = chrono_time();
-
     n_lines = 0;
     cur_pos = 0;
 
-    int kmer_count = 0;
-    
     close(fd);
+}
 
-    int fc;
-    fc = open("/Users/jasonshi/Documents/zjshi_github/beta/kmerization/vfkmrz_fastq.out", O_RDONLY);
 
-    int n_kmer_per_read = 3;
+void kmer_match() {	
+    vector<char> buffer(buffer_size);
+    char* window = buffer.data();
+
+    ska::flat_hash_map<string, uintmax_t> kdb = {};
+    ska::flat_hash_map<string, uintmax_t> kdbc = {};
+
+    db_load(kdb, kdbc, window);
+
+    auto t_start = chrono_time();
+
+	uintmax_t n_lines = 0;
+    uintmax_t n_pause = 0;
+
+	int cur_pos = 0;
+    int snp_cur = 0;
+
+	char seq_buf[k];
+    int kmer_count = 0;
+
     bool has_wildcard = false;
     ska::flat_hash_map<uintmax_t, int> foot_print= {};
     
     while (true) {
-
-        const ssize_t bytes_read = read(fc, window, step_size);
+        const ssize_t bytes_read = read(fileno(stdin), window, step_size);
 		
         if (bytes_read == 0)
             break;
@@ -190,6 +191,7 @@ void kmer_match() {
             char c = window[i];
             if (c == '\n') {
                 ++n_lines;
+                ++n_pause;
                 ++kmer_count;
 
                 cur_pos = 0;
@@ -226,10 +228,11 @@ void kmer_match() {
             break;
 
         //fh.write(&kmers[0], kmers.size());
-        cerr << n_lines << " lines were scanned after " << (chrono_time() - t_start) / 1000 << " seconds" << endl;
+        if (n_pause > 5*1000*1000) {
+            cerr << n_lines << " lines were scanned after " << (chrono_time() - t_start) / 1000 << " seconds" << endl;
+            n_pause = 0;
+        }
     }
-    
-    close(fc); 
 
     auto fh = fstream(out_path, ios::out | ios::binary);   
 
