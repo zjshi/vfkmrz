@@ -58,32 +58,34 @@ usage:
 ```
 
 # htfs_stats 
-the program htfs_stats scans inputs (fasta or fastq format) and output basic stats information about the inputs. (e.g. number of lines, number of reads and number of bases)
+the program htsf_stats scans inputs (fasta or fastq format) and output basic stats information about the inputs. (e.g. number of lines, number of reads and number of bases)
 
 
 ```shell
-    $ g++ -O3 --std=c++11 -o htfs_stats htfs_stats.cpp
-    $ gzip -dc /path/exp.fastq.gz | ./htfs_stats -fq
+    $ g++ -O3 --std=c++11 -o htsf_stats htsf_stats.cpp
+    $ gzip -dc /path/exp.fastq.gz | ./htsf_stats -fq
 ```
 
 -or-
 
 ```shell
-    $ cat /path/exp.fasta | ./htfs_stats -fa
+    $ cat /path/exp.fasta | ./htsf_stats -fa
 ```
 
 # vfkmrz_match
 the prgram vfkmrz_match takes two list of kmers, db and query list, that have the same length, then search query list against db list and return the occurrences of db kmers in query kmers.
 
 ```shell
-    $ g++ -O --std=c++14 -o vfkmrz_match vfkmrz_match.cpp | ./vfkmrz_match
+    $ g++ -O --std=c++14 -o vfkmrz_match vfkmrz_match.cpp 
+    $ cat </path/to/kmer/list> | ./vfkmrz_match
 ```
 
 # vfkmrz_bunion
 the prgram vfkmrz_bunion takes two list of kmers, specified by option of -k1 and -k2, that have the same length, then return the unique kmers for the union of k1 and k2 kmers 
 
 ```shell
-    $ g++ -O --std=c++11 -o vfkmrz_bunion vfkmrz_bunion.cpp | ./vfkmrz_bunion -k1 </path/to/kmer/list1> -k2 </path/to/kmer/list2>
+    $ g++ -O --std=c++11 -o vfkmrz_bunion vfkmrz_bunion.cpp
+    $ ./vfkmrz_bunion -k1 </path/to/kmer/list1> -k2 </path/to/kmer/list2>
 ```
 
 
