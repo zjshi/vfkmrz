@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <chrono>
+#include <limits>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -41,9 +42,7 @@ constexpr auto buffer_size = 256 * 1024 * 1024;
 constexpr auto seg_l = 1000*1000*5;
 
 // maximum lines when reached the program exits; for testing or practical use
-constexpr auto max_l = 1000*1000*100;
-
-constexpr auto max_load = 10*1000*1000;
+constexpr auto max_load = numeric_limits<uintmax_t>::max();
 
 // kmer database path 
 constexpr auto db_path = "/Users/jasonshi/Documents/zjshi_github/beta/kmerization/kmer31_db.txt";

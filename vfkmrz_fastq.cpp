@@ -3,6 +3,7 @@
 #include <vector>
 #include <algorithm>
 #include <chrono>
+#include <limits>
 
 #include <unistd.h>
 #include <assert.h>
@@ -35,8 +36,8 @@ constexpr auto buffer_size = 128 * 1024 * 1024;
 // maximum lines when reached; also the max memory controller
 constexpr auto seg_l = 1000*1000*5;
 
-// maximum lines when reached the program exits; for testing or practical use
-constexpr auto max_l = 1000*1000*100;
+// maximum lines when reached the program exits; for testingor practical use
+constexpr auto max_l = numeric_limits<uintmax_t>::max();
 
 // output file path
 //constexpr auto out_path = "./vfkmrz_fastq.out";

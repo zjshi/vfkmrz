@@ -27,14 +27,8 @@ constexpr auto k = 31;
 constexpr auto step_size = 256 * 1024 * 1024;
 constexpr auto buffer_size = 256 * 1024 * 1024;
 
-// maximum lines when reached; also the max memory controller
-constexpr auto seg_l = 1000*1000*10;
-
-// maximum lines when reached the program exits; for testing or practical use
-constexpr auto max_l = 1000*1000*100;
-
 // output file path
-constexpr auto out_path = "./vfkmrz_bunion.out";
+constexpr auto out_path = "/dev/stdout";
 
 // get time elapsed since when it all began in milliseconds.
 long chrono_time() {
@@ -48,10 +42,10 @@ constexpr int bpb = 2;
 template <class int_type>
 int_type bit_encode(const char c) {
     switch (c) {
-        case 'A': return 0;
-        case 'C': return 1;
-        case 'G': return 2;
-        case 'T': return 3;
+    case 'A': return 0;
+    case 'C': return 1;
+    case 'G': return 2;
+    case 'T': return 3;
     }
 
     assert(false);
@@ -61,10 +55,10 @@ int_type bit_encode(const char c) {
 template <class int_type>
 char bit_decode(const int_type bit_code) {
     switch (bit_code) {
-        case 0: return 'A';
-        case 1: return 'C';
-        case 2: return 'G';
-        case 3: return 'T';
+    case 0: return 'A';
+    case 1: return 'C';
+    case 2: return 'G';
+    case 3: return 'T';
     }
     assert(false);
 }
@@ -99,45 +93,45 @@ void seq_decode(char* buf, const int len, const int_type seq_code, int_type* cod
 template <class int_type>
 void bit_load(const char* k_path, vector<char>& buffer, vector<int_type>& k_vec, const int_type* code_dict, const int_type b_mask) {
     auto t_start = chrono_time();
-	
+
     char* window = buffer.data();
 
     uintmax_t n_lines = 0;
 
-	int cur_pos = 0;
-	char seq_buf[k];
-	
+    int cur_pos = 0;
+    char seq_buf[k];
+
     //auto fh = fstream(out_path, ios::out | ios::binary);
 
     int fd;
     fd = open(k_path, O_RDONLY);
 
     bool has_wildcard = false;
-    
+
     while (true) {
 
         const ssize_t bytes_read = read(fd, window, step_size);
-		
+
         if (bytes_read == 0)
             break;
 
         if (bytes_read == (ssize_t) -1) {
-        	cerr << "unknown fetal error!" << endl;
-			exit(EXIT_FAILURE);
-		}
+            cerr << "unknown fetal error!" << endl;
+            exit(EXIT_FAILURE);
+        }
 
         for (int i = 0;  i < bytes_read;  ++i) {
             char c = toupper(window[i]);
             if (c == '\n') {
                 ++n_lines;
                 cur_pos = 0;
-                
+
                 if (has_wildcard) {
                     has_wildcard = false;
                     continue;    
                 }
 
-				auto code = seq_encode<int_type>(seq_buf, k, code_dict, b_mask);
+                auto code = seq_encode<int_type>(seq_buf, k, code_dict, b_mask);
                 k_vec.push_back(code);
             } else {
                 if (c == 'N') {
@@ -147,9 +141,9 @@ void bit_load(const char* k_path, vector<char>& buffer, vector<int_type>& k_vec,
                 seq_buf[cur_pos++] = c;
             }
         }
-        
+
         //fh.write(&kmers[0], kmers.size());
-        
+
         cerr << n_lines << " lines were scanned after " << (chrono_time() - t_start) / 1000 << " seconds" << endl;
     }
 
@@ -166,12 +160,12 @@ void vfkmrz_bunion(const char* k1_path, const char* k2_path) {
     int_type b_mask = (lsb << bpb) - lsb;
 
     int_type code_dict[1 << (sizeof(char) * 8)];
-	make_code_dict<int_type>(code_dict);
+    make_code_dict<int_type>(code_dict);
 
     vector<int_type> kdb;
     vector<char> buffer(buffer_size);
 
-	bit_load<int_type>(k1_path, buffer, kdb, code_dict, b_mask);	
+    bit_load<int_type>(k1_path, buffer, kdb, code_dict, b_mask);	
 
     auto timeit = chrono_time();
     sort(kdb.begin(), kdb.end());
@@ -180,14 +174,14 @@ void vfkmrz_bunion(const char* k1_path, const char* k2_path) {
     cerr << "Done!\n" << "It takes " << (chrono_time() - timeit) / 1000 << " secs" << endl;
     cerr << "the first kmer list has " << kdb.size() << " unique kmers" << endl;
 
-	
-	vector<int_type> kqr;
-	bit_load<int_type>(k2_path, buffer, kqr, code_dict, b_mask);	
-/*
-    for(auto it = kqr.begin(); it != kqr.end(); ++it){
-        cout << *it << "\n";    
-    }
-*/
+
+    vector<int_type> kqr;
+    bit_load<int_type>(k2_path, buffer, kqr, code_dict, b_mask);	
+    /*
+       for(auto it = kqr.begin(); it != kqr.end(); ++it){
+       cout << *it << "\n";    
+       }
+     */
     timeit = chrono_time();
     sort(kqr.begin(), kqr.end());
     unique(kqr.begin(), kqr.end());
@@ -207,50 +201,54 @@ void vfkmrz_bunion(const char* k1_path, const char* k2_path) {
     cerr << "the kmer union has " << kmer_union.size() << " unique kmers\n";
 
     char seq_buf[k];
+    auto fh = fstream(out_path, ios::out | ios::binary);
+
     for (ip = kmer_union.begin(); ip != kmer_union.end(); ++ip) {
         seq_decode(seq_buf, k, *ip, code_dict, b_mask);    
-        cout << seq_buf << "\n";
+        fh << seq_buf << "\n";
     }
+
+    fh.close();
 }
 
 int main(int argc, char** argv){		
 
-	int k1_i = -1, k2_i = -1;	
+    int k1_i = -1, k2_i = -1;	
 
     if (argc == 5) {
-		for(int i = 0; i < argc; ++i) {
-			if (!strcmp(argv[i], "-k1")) {
-				k1_i = i + 1;
-			}
+        for(int i = 0; i < argc; ++i) {
+            if (!strcmp(argv[i], "-k1")) {
+                k1_i = i + 1;
+            }
 
-			if (!strcmp(argv[i], "-k2")) {
-				k2_i = i + 1;
-			}
+            if (!strcmp(argv[i], "-k2")) {
+                k2_i = i + 1;
+            }
 
             cerr << "arg " << i << ": " << argv[i] << endl;
-		}
-		
-		if (k1_i == -1 || k2_i == -1) {
-			cerr << argv[0] << "takes exactly two arguments (-k1 and -k2)!" << endl;
-			exit(EXIT_FAILURE);
-		} else if (k1_i > 4 or k2_i > 4) {
-			cerr << argv[0] << "takes exactly two arguments (-k1 and -k2)!" << endl;
-			exit(EXIT_FAILURE);
-		} else {
-			if (1 <= k && k <=4){
-				vfkmrz_bunion<uint_fast8_t>(argv[k1_i], argv[k2_i]);		
-			} else if (5 <= k && k <= 8) {
-				vfkmrz_bunion<uint_fast16_t>(argv[k1_i], argv[k2_i]);		
-			} else if (8 <= k && k <= 16) {
-				vfkmrz_bunion<uint_fast32_t>(argv[k1_i], argv[k2_i]);		
-			} else if (17 <= k && k <= 32) {
-				vfkmrz_bunion<uint_fast64_t>(argv[k1_i], argv[k2_i]);		
-			} else if (33 <= k && k <= 128) {
-				vfkmrz_bunion<uint64_t>(argv[k1_i], argv[k2_i]);		
-			} else {
-				exit(EXIT_FAILURE);
-			}
-		}
+        }
+
+        if (k1_i == -1 || k2_i == -1) {
+            cerr << argv[0] << "takes exactly two arguments (-k1 and -k2)!" << endl;
+            exit(EXIT_FAILURE);
+        } else if (k1_i > 4 or k2_i > 4) {
+            cerr << argv[0] << "takes exactly two arguments (-k1 and -k2)!" << endl;
+            exit(EXIT_FAILURE);
+        } else {
+            if (1 <= k && k <=4){
+                vfkmrz_bunion<uint_fast8_t>(argv[k1_i], argv[k2_i]);		
+            } else if (5 <= k && k <= 8) {
+                vfkmrz_bunion<uint_fast16_t>(argv[k1_i], argv[k2_i]);		
+            } else if (8 <= k && k <= 16) {
+                vfkmrz_bunion<uint_fast32_t>(argv[k1_i], argv[k2_i]);		
+            } else if (17 <= k && k <= 32) {
+                vfkmrz_bunion<uint_fast64_t>(argv[k1_i], argv[k2_i]);		
+            } else if (33 <= k && k <= 128) {
+                vfkmrz_bunion<uint64_t>(argv[k1_i], argv[k2_i]);		
+            } else {
+                exit(EXIT_FAILURE);
+            }
+        }
     } else {
         cerr << argv[0] << "takes exactly two arguments (-k1 and -k2)!" << endl;
         exit(EXIT_FAILURE);
