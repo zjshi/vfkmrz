@@ -31,7 +31,7 @@ void fastq2fasta() {
 	
 	vector<char> padded;
 
-    auto fh = fstream(out_path, ios::out | ios::binary);
+    ofstream fh(out_path, ofstream::out | ofstream::binary);
 
     while (true) {
 

@@ -93,3 +93,5 @@ the prgram vfkmrz_bunion takes two list of kmers, specified by option of -k1 and
 standard fasta and fastq format only for inputs, otherwise failure is almost guaranteed. 
 the programs require the compilers that are compatible with C++ 14 standards.
 all the tests have been done on clang-900.0.38
+
+vfkmrz programs are now compatible for GNU C Compiler. All the programs were tested and compiled successfully under GCC 7.2.0; All the programs except for vfkmrz_match.cpp (requires C++ standard newer than 14) were compiled successfully under GCC 4.8.5  
