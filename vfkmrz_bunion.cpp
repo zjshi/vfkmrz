@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <chrono>
+#include <cstring>
 
 #include <fcntl.h>
 #include <unistd.h>
