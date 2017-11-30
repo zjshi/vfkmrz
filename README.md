@@ -4,7 +4,15 @@ fast tool for kmerizing genomes or metagenomes
 * tunable RAM use 
 * support two popular formats: fasta and fastq
 
-# vfkmer_fasta
+vfkmrz has the following independent programs that can be compiled for specific use:
+* vfkmrz_fasta
+* vfkmrz_fastq
+* fastq2fasta
+* htsf_stats
+* vfkmrz_match
+* vfkmrz_bunion
+
+# vfkmrz_fasta
 the program vfkmrz_fasta.cpp scans its input (fasta format) for forward k mers,
 
 usage:
@@ -13,7 +21,7 @@ usage:
     $ cat /path/exp.fasta | ./vfkmrz_fasta
 ```
 
-# vfkmer_fastq
+# vfkmrz_fastq
 the program vfkmrz_fastq.cpp scans its input (fastq text stream) for forward k mers,
 
 usage:
@@ -57,7 +65,7 @@ usage:
     $ cat /path/exp.fastq | ./fastq2fasta
 ```
 
-# htfs_stats 
+# htsf_stats 
 the program htsf_stats scans inputs (fasta or fastq format) and output basic stats information about the inputs. (e.g. number of lines, number of reads and number of bases)
 
 
