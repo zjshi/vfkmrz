@@ -156,11 +156,11 @@ def compile_vfkmrz_atom(vfkmrz_paths, vfkmrz_params, overwrite=True):
                     vfkmrz_fastq_lines.append("constexpr auto r_len = {};".format(r_len))
                 elif "constexpr auto offset = 31;" == line:
                     vfkmrz_fastq_lines.append("constexpr auto offset = {};".format(offset))
-                elif "constexpr auto max_l = 1000*1000*80;" == line:
+                elif "constexpr auto max_l = numeric_limits<uintmax_t>::max();" == line:
                     if max_line == float('inf'):
-                        vfkmrz_fasta_lines.append("constexpr auto max_l = numeric_limits<uintmax_t>::max();") 
+                        vfkmrz_fastq_lines.append(line)
                     else:
-                        vfkmrz_fasta_lines.append("constexpr auto max_l = {};".format(max_line))
+                        vfkmrz_fastq_lines.append("constexpr auto max_l = {};".format(max_line))
                 else:
                     vfkmrz_fastq_lines.append(line)
 
@@ -175,9 +175,9 @@ def compile_vfkmrz_atom(vfkmrz_paths, vfkmrz_params, overwrite=True):
                     vfkmrz_fasta_lines.append("constexpr auto k = {};".format(k))
                 elif "constexpr auto offset = 31;" == line:
                     vfkmrz_fasta_lines.append("constexpr auto offset = {};".format(offset))
-                elif "constexpr auto max_l = 1000*1000*80;" == line:
+                elif "constexpr auto max_l = numeric_limits<uintmax_t>::max();" == line:
                     if max_line == float('inf'):
-                        vfkmrz_fasta_lines.append("constexpr auto max_l = numeric_limits<uintmax_t>::max();") 
+                        vfkmrz_fasta_lines.append(line) 
                     else:
                         vfkmrz_fasta_lines.append("constexpr auto max_l = {};".format(max_line))
                 else:
