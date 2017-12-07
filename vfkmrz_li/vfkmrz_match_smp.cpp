@@ -32,7 +32,6 @@ using namespace std;
 // global variable declaration starts here
 constexpr auto k = 31;
 constexpr auto r_len = 90;
-constexpr auto n_kmer_per_read = 3;
 
 // parameters for <unistd.h> file read; from the source of GNU coreutils wc
 constexpr auto step_size = 256 * 1024 * 1024;
@@ -56,22 +55,14 @@ long chrono_time() {
     return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 }
 
-void db_load(ska::flat_hash_map<string, uintmax_t>& kdb, ska::flat_hash_map<string, uintmax_t>& kdbc, char* window) {
+void db_load(ska::flat_hash_map<string, uintmax_t>& kdbc, char* window) {
     auto t_start = chrono_time();
 
     uintmax_t n_lines = 0;
 
 	int cur_pos = 0;
-    int snp_cur = 0;
 
 	char seq_buf[k];
-	char snp_buf[12];
-
-    int field = 0;
-    //unordered_map<string, uintmax_t> kdb = {};
-    //unordered_map<string, uintmax_t> kdbc = {};
-
-    //auto fh = fstream(out_path, ios::out | ios::binary);
 
     int fd;
     fd = open(db_path, O_RDONLY);
@@ -84,7 +75,7 @@ void db_load(ska::flat_hash_map<string, uintmax_t>& kdb, ska::flat_hash_map<stri
             break;
 
         if (bytes_read == (ssize_t) -1) {
-        	cerr << "unknown fetal error!" << endl;
+        	cerr << "unknown fetal error, when loading db!" << endl;
 			exit(EXIT_FAILURE);
 		}
 
@@ -92,59 +83,27 @@ void db_load(ska::flat_hash_map<string, uintmax_t>& kdb, ska::flat_hash_map<stri
             char c = toupper(window[i]);
             if (c == '\n') {
                 ++n_lines;
-
-                for(int j = snp_cur; j < 12; ++j) {
-                    snp_buf[j] = ' ';
-                }
-
+                
                 string str(seq_buf);
-                string istr(snp_buf);
-                stringstream ss(istr);
-                uintmax_t snp_id = 0;
-                ss >> snp_id;
-
-/*
-                for(auto it = snp_buf.begin(); it != snp_buf.end(); ++it){
-                    cout << *it << "\n";    
-                }
-*/
-                kdb.insert({str, snp_id});
                 kdbc.insert({str, 0});
 
-                cur_pos = snp_cur = field = 0;
+                cur_pos = 0;
 
                 if (n_lines > max_load)
                     break;
-            } else if (c == ' ') {
-                field = 1;
             } else {
-                if (field) {
-                    snp_buf[snp_cur++] = c; 
-                } else {
-                    seq_buf[cur_pos++] = c;
-                }
+                seq_buf[cur_pos++] = c;
             }
         }
 
         
-        //fh.write(&kmers[0], kmers.size());
-        
         cerr << n_lines << " lines were scanned after " << (chrono_time() - t_start) / 1000 << " seconds" << endl;
-        cerr << "the kdb size is " << kdb.size() << "\n";
+        cerr << "the kdb size is " << kdbc.size() << "\n";
 
         if (n_lines > max_load)
             break;
     }
     
-/*
-    for(auto it = kdb.begin(); it != kdb.end(); ++it){
-        cout << it->first << ":" << it->second << "\n";    
-    }
-
-    return;
-*/
-    //fh.close();
-	
     n_lines = 0;
     cur_pos = 0;
 
@@ -156,10 +115,9 @@ void kmer_match() {
     vector<char> buffer(buffer_size);
     char* window = buffer.data();
 
-    ska::flat_hash_map<string, uintmax_t> kdb = {};
     ska::flat_hash_map<string, uintmax_t> kdbc = {};
 
-    db_load(kdb, kdbc, window);
+    db_load(kdbc, window);
 
     auto t_start = chrono_time();
 
@@ -167,13 +125,10 @@ void kmer_match() {
     uintmax_t n_pause = 0;
 
 	int cur_pos = 0;
-    int snp_cur = 0;
 
 	char seq_buf[k];
-    int kmer_count = 0;
 
     bool has_wildcard = false;
-    ska::flat_hash_map<uintmax_t, int> foot_print= {};
     
     while (true) {
         const ssize_t bytes_read = read(fileno(stdin), window, step_size);
@@ -182,7 +137,7 @@ void kmer_match() {
             break;
 
         if (bytes_read == (ssize_t) -1) {
-        	cerr << "unknown fetal error!" << endl;
+        	cerr << "unknown fetal error, when read stdin input" << endl;
 			exit(EXIT_FAILURE);
 		}
 
@@ -191,27 +146,16 @@ void kmer_match() {
             if (c == '\n') {
                 ++n_lines;
                 ++n_pause;
-                ++kmer_count;
 
                 cur_pos = 0;
-
-                if (kmer_count > n_kmer_per_read) {
-                    kmer_count = 0;
-                    foot_print.clear();
-                }
 
                 if (has_wildcard) {
                     has_wildcard = false;
                     continue;    
                 }
 
-                if (kdb.find(seq_buf) != kdb.end()){
-                    if (!foot_print[kdb[seq_buf]]) {
-                        ++kdbc[seq_buf];
-                        foot_print[kdb[seq_buf]] = 1;    
-                    } else {
-                        cerr << seq_buf << "\n";    
-                    }
+                if (kdbc.find(seq_buf) != kdbc.end()){
+                    ++kdbc[seq_buf];
                 }
                 
             } else {
