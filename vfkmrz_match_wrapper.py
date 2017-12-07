@@ -15,7 +15,7 @@ def parse_args():
     parser.add_argument('--in', type=str, dest='input', required=True,
         help="""path the input kmer list file""")
     parser.add_argument('--kpr', type=str, dest='kpr', required=True,
-        help="""number of kmer per read; this argument is needed for genotyping, may not be needed for pure kmer counting""")
+        help="""number of kmer per read; this argument is needed for genotyping, may not be needed for pure kmer counting (use kpr = 0)""")
     parser.add_argument('--out', type=str, dest='output', default='/dev/stdout',
         help="""Path to output file (/dev/stdout)""")
     parser.add_argument('--max-reads', dest='max_reads', default=float('inf'), type=int,
@@ -99,7 +99,11 @@ def compile_vfkmrz_atom(vfkmrz_paths, vfkmrz_params, overwrite=True):
     para_str = "{}-{}-{}-{}".format(k, kpr, max_line, db_path)
     hash_val = hashlib.md5(para_str).hexdigest()
 
-    vfkmrz_paths["vfkmrz_match_src"] = vfkmrz_paths["vfkmrz_src"] + "/" + "vfkmrz_match.cpp"
+    if int(kpr) == 0:
+        vfkmrz_paths["vfkmrz_match_src"] = vfkmrz_paths["vfkmrz_src"] + "/" + "vfkmrz_match_smp.cpp"
+    else:
+        vfkmrz_paths["vfkmrz_match_src"] = vfkmrz_paths["vfkmrz_src"] + "/" + "vfkmrz_match.cpp"
+
     vfkmrz_paths["vfkmrz_match_tmp"] = "{}/{}_match.cpp".format(vfkmrz_paths["vfkmrz_tmp"], hash_val)
     vfkmrz_paths["vfkmrz_match_bin"] = "{}/{}_match".format(vfkmrz_paths["vfkmrz_bin"], hash_val)
 
@@ -115,24 +119,28 @@ def compile_vfkmrz_atom(vfkmrz_paths, vfkmrz_params, overwrite=True):
         vfkmrz_match_lines = []
         with open(vfkmrz_paths["vfkmrz_match_src"], "r") as fh:
             for line in fh:
+                line = line.rstrip()
                 if "constexpr auto k = 31;" == line:
                     vfkmrz_match_lines.append("constexpr auto k = {};".format(k))
                 elif "constexpr auto offset = 31;" == line:
                     vfkmrz_match_lines.append("constexpr auto offset = {};".format(offset))
                 elif "constexpr auto n_kmer_per_read = 3;" == line:
                     vfkmrz_match_lines.append("constexpr auto n_kmer_per_read = {};".format(kpr))
-                elif "constexpr auto max_l = 1000*1000*80;" == line:
-                    vfkmrz_match_lines.append("constexpr auto max_l = {};".format(max_line))
-                elif "constexpr auto db_path = \"\";" == line:
-                    vfkmrz_match_lines.append("constexpr auto max_l = \"{}\";".format(db_path))
+                elif "constexpr auto max_load = numeric_limits<uintmax_t>::max();" == line:
+                    if max_line != float("inf"):
+                        vfkmrz_match_lines.append("constexpr auto max_load = {};".format(max_line))
+                    else:
+                        vfkmrz_match_lines.append(line)
+                elif "constexpr auto db_path = \"41616C3A-1545-4DCC-8C4F-0C53A406E85C\";" == line:
+                    vfkmrz_match_lines.append("constexpr auto db_path = \"{}\";".format(db_path))
                 else:
                     vfkmrz_match_lines.append(line)
 
         with open(vfkmrz_paths["vfkmrz_match_tmp"], "w") as fh:
             fh.write("\n".join(vfkmrz_match_lines))
 
-        command = ""
-        command += "g++ -O3 --std=c++14 {} -o {} ".format(vfkmrz_paths["vfkmrz_match_src"], vfkmrz_paths["vfkmrz_match_bin"])
+        command = "cp {} {} && ".format(vfkmrz_paths["vfkmrz_match_header_src"], vfkmrz_paths["vfkmrz_tmp"])
+        command += "g++ -O3 --std=c++14 {} -o {} ".format(vfkmrz_paths["vfkmrz_match_tmp"], vfkmrz_paths["vfkmrz_match_bin"])
 
         sys.stderr.write("{}compiling vfkmrz\n".format(" "*4))
         sys.stderr.write("{}{}\n".format(" "*8, command))
@@ -174,7 +182,7 @@ def run_vfkmrz_atom(vfkmrz_paths, vfkmrz_params):
     sys.stderr.write("{}temporary output file generated.\n".format(" "*4))
     sys.stderr.write("{}tmp output: {}\n".format(" "*8, vfkmrz_paths["vfkmrz_output_tmp"]))
 
-    return vfkmrz_paths["vfkmrz_output"]
+    return vfkmrz_params["vfkmrz_output"]
 
 def vfkmrz_prepare(dat_path, db_path, kmer_size, kpr, output, max_line):
     vfkmrz_paths = prepare_vfkmrz_paths()
@@ -211,6 +219,7 @@ def prepare_vfkmrz_paths():
     vfkmrz_paths["vfkmrz_tmp"] = tmp_dir
 
     vfkmrz_paths["vfkmrz_match_src"] = "{}/vfkmrz_match.cpp".format(src_dir)
+    vfkmrz_paths["vfkmrz_match_header_src"] = "{}/flat_hash_map.hpp".format(src_dir)
 
     sys.stderr.write("{}vfkmrz path tree preparation done!\n".format(" "*4))
     sys.stderr.write("{}vfkmrz paths generated.\n".format(" "*4))
@@ -241,7 +250,7 @@ def search_vfkmrz_src():
     parent_dir = ""
     src_dir = ""
 
-    targets = ["vfkmrz_match.cpp", "flat_hash_map.hpp"]
+    targets = ["vfkmrz_match.cpp", "vfkmrz_match_smp.cpp", "flat_hash_map.hpp"]
 
     sys.stderr.write("[looking for vfkmrz]\n")
 
