@@ -112,7 +112,7 @@ def compile_vfkmrz_atom(vfkmrz_paths, vfkmrz_params, overwrite=True):
         with open(vfkmrz_paths["vfkmrz_bunion_src"], "r") as fh:
             for line in fh:
                 line = line.rstrip()
-                if "constexpr auto k = 31" == line:
+                if "constexpr auto k = 31;" == line:
                     vfkmrz_bunion_lines.append("constexpr auto k = {};".format(k))
                 else:
                     vfkmrz_bunion_lines.append(line)
@@ -121,7 +121,7 @@ def compile_vfkmrz_atom(vfkmrz_paths, vfkmrz_params, overwrite=True):
             fh.write("\n".join(vfkmrz_bunion_lines))
 
         command = ""
-        command += "g++ -O3 --std=c++11 {} -o {} ".format(vfkmrz_paths["vfkmrz_bunion_src"], vfkmrz_paths["vfkmrz_bunion_bin"])
+        command += "g++ -O3 --std=c++11 {} -o {} ".format(vfkmrz_paths["vfkmrz_bunion_tmp"], vfkmrz_paths["vfkmrz_bunion_bin"])
 
         sys.stderr.write("{}compiling vfkmrz\n".format(" "*4))
         sys.stderr.write("{}{}\n".format(" "*8, command))

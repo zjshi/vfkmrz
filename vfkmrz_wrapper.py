@@ -150,7 +150,7 @@ def compile_vfkmrz_atom(vfkmrz_paths, vfkmrz_params, overwrite=True):
             for line in fh:
                 line = line.rstrip()
                 if "constexpr auto k = 31;" == line:
-                    print "--------------------replacing kmer size line"
+                    sys.stderr.write("--------------------replacing kmer size line")
                     vfkmrz_fastq_lines.append("constexpr auto k = {};".format(k))
                 elif "constexpr auto r_len = 90;" == line:
                     vfkmrz_fastq_lines.append("constexpr auto r_len = {};".format(r_len))
