@@ -62,7 +62,7 @@ void db_load(ska::flat_hash_map<string, uintmax_t>& kdbc, char* window) {
 
 	int cur_pos = 0;
 
-	char seq_buf[k];
+	char seq_buf[k+1];
 
     int fd;
     fd = open(db_path, O_RDONLY);
@@ -83,6 +83,8 @@ void db_load(ska::flat_hash_map<string, uintmax_t>& kdbc, char* window) {
             char c = toupper(window[i]);
             if (c == '\n') {
                 ++n_lines;
+
+                seq_buf[cur_pos]= '\0';
                 
                 string str(seq_buf);
                 kdbc.insert({str, 0});
@@ -126,7 +128,7 @@ void kmer_match() {
 
 	int cur_pos = 0;
 
-	char seq_buf[k];
+	char seq_buf[k+1];
 
     bool has_wildcard = false;
     
@@ -146,7 +148,8 @@ void kmer_match() {
             if (c == '\n') {
                 ++n_lines;
                 ++n_pause;
-
+                
+                seq_buf[cur_pos] = '\0';
                 cur_pos = 0;
 
                 if (has_wildcard) {
@@ -174,8 +177,8 @@ void kmer_match() {
         }
     }
 
-    ofstream fh(out_path, ofstream::out | ofstream::binary);
     // auto fh = fstream(out_path, ios::out | ios::binary);   
+    ofstream fh(out_path, ofstream::out | ofstream::binary);
 
     for(auto it = kdbc.begin(); it != kdbc.end(); ++it){
         fh << it->first << "\t" << it->second << "\n";    
