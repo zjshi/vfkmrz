@@ -256,7 +256,10 @@ def search_vfkmrz_src():
                         sys.stderr.write("{}{} found!\n".format(" "*8, target))
 
                 if is_src == True:
-                    src_dir = _ + "/" + __
+                    if os.path.isdir(_ + "/" + __):
+                        src_dir = _ + "/" + __
+                    else:
+                        src_dir = _
                     parent_dir = _
 
             if src_dir == "" or parent_dir == "":

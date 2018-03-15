@@ -1,10 +1,10 @@
 #include <iostream>
 #include <fstream>
-#include <cstring>
 #include <vector>
 #include <unordered_map>
 #include <algorithm>
 #include <chrono>
+#include <cstring>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -84,10 +84,12 @@ int_type seq_encode(const char* buf, int len, const int_type* code_dict, const i
 
 template <class int_type>
 void seq_decode(char* buf, const int len, const int_type seq_code, int_type* code_dict, const int_type b_mask) {
-    for (int i=0;  i < len;  ++i) {
+    for (int i=0;  i < len-1;  ++i) {
         const int_type b_code = (seq_code >> (bpb * (len - i - 1))) & b_mask;
         buf[i] = bit_decode<int_type>(b_code);
     }
+
+    buf[len-1] = '\0';
 }
 
 
@@ -201,11 +203,11 @@ void vfkmrz_bunion(const char* k1_path, const char* k2_path) {
     cerr << "Done!\n" << "It takes " << (chrono_time() - timeit) / 1000 << " secs for merging" << endl;
     cerr << "the kmer union has " << kmer_union.size() << " unique kmers\n";
 
-    char seq_buf[k];
+    char seq_buf[k+1];
     ofstream fh(out_path, ofstream::out | ofstream::binary);
 
     for (ip = kmer_union.begin(); ip != kmer_union.end(); ++ip) {
-        seq_decode(seq_buf, k, *ip, code_dict, b_mask);    
+        seq_decode(seq_buf, k+1, *ip, code_dict, b_mask);    
         fh << seq_buf << "\n";
     }
 
