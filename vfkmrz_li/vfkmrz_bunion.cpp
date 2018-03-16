@@ -85,7 +85,7 @@ int_type seq_encode(const char* buf, int len, const int_type* code_dict, const i
 template <class int_type>
 void seq_decode(char* buf, const int len, const int_type seq_code, int_type* code_dict, const int_type b_mask) {
     for (int i=0;  i < len-1;  ++i) {
-        const int_type b_code = (seq_code >> (bpb * (len - i - 1))) & b_mask;
+        const int_type b_code = (seq_code >> (bpb * (len - i - 2))) & b_mask;
         buf[i] = bit_decode<int_type>(b_code);
     }
 
@@ -187,19 +187,20 @@ void vfkmrz_bunion(const char* k1_path, const char* k2_path) {
      */
     timeit = chrono_time();
     sort(kqr.begin(), kqr.end());
-    unique(kqr.begin(), kqr.end());
     ip = unique(kqr.begin(), kqr.end());
+    // ip = unique(kqr.begin(), kqr.end());
     kqr.resize(std::distance(kqr.begin(), ip));
     cerr << "Done!\n" << "It takes " << (chrono_time() - timeit) / 1000 << " secs" << endl;
     cerr << "the second kmer list has " << kqr.size() << " unique kmers" << endl;
 
-    vector<int_type> kmer_union(kdb.size()+kqr.size());
+    // vector<int_type> kmer_union(kdb.size()+kqr.size());
+    vector<int_type> kmer_union;
 
     cerr << "start merging two vectors." << endl;
-    set_union(kdb.begin(), kdb.end(), kqr.begin(), kqr.end(), kmer_union.begin());
-    unique(kmer_union.begin(), kmer_union.end());
-    ip = unique(kmer_union.begin(), kmer_union.end());
-    kmer_union.resize(std::distance(kmer_union.begin(), ip));
+    set_union(kdb.begin(), kdb.end(), kqr.begin(), kqr.end(), back_inserter(kmer_union));
+    // ip = unique(kmer_union.begin(), kmer_union.end());
+    // ip = unique(kmer_union.begin(), kmer_union.end());
+    // kmer_union.resize(std::distance(kmer_union.begin(), ip));
     cerr << "Done!\n" << "It takes " << (chrono_time() - timeit) / 1000 << " secs for merging" << endl;
     cerr << "the kmer union has " << kmer_union.size() << " unique kmers\n";
 
@@ -209,6 +210,7 @@ void vfkmrz_bunion(const char* k1_path, const char* k2_path) {
     for (ip = kmer_union.begin(); ip != kmer_union.end(); ++ip) {
         seq_decode(seq_buf, k+1, *ip, code_dict, b_mask);    
         fh << seq_buf << "\n";
+        // fh << *ip << "\n";
     }
 
     fh.close();
