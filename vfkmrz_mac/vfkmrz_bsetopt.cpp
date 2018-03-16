@@ -24,6 +24,11 @@ using namespace std;
 // global variable declaration starts here
 constexpr auto k = 31;
 
+// set operation mode
+// valid values: 0, 1, 2
+// 0 is set union operation; 1 is set intersection operation; 2 is set difference([set1-set2]);
+constexpr auto s_mod = 0;
+
 // parameters for <unistd.h> file read; from the source of GNU coreutils wc
 constexpr auto step_size = 256 * 1024 * 1024;
 constexpr auto buffer_size = 256 * 1024 * 1024;
@@ -158,7 +163,7 @@ void bit_load(const char* k_path, vector<char>& buffer, vector<int_type>& k_vec,
 }
 
 template <class int_type>
-void vfkmrz_bunion(const char* k1_path, const char* k2_path) {	
+void vfkmrz_bsetopt(const char* k1_path, const char* k2_path) {	
     int_type lsb = 1;
     int_type b_mask = (lsb << bpb) - lsb;
 
@@ -193,21 +198,30 @@ void vfkmrz_bunion(const char* k1_path, const char* k2_path) {
     cerr << "Done!\n" << "It takes " << (chrono_time() - timeit) / 1000 << " secs" << endl;
     cerr << "the second kmer list has " << kqr.size() << " unique kmers" << endl;
 
-    // vector<int_type> kmer_union(kdb.size()+kqr.size());
-    vector<int_type> kmer_union;
+    // vector<int_type> kmer_result(kdb.size()+kqr.size());
+    vector<int_type> kmer_result;
 
     cerr << "start merging two vectors." << endl;
-    set_union(kdb.begin(), kdb.end(), kqr.begin(), kqr.end(), back_inserter(kmer_union));
-    // ip = unique(kmer_union.begin(), kmer_union.end());
-    // ip = unique(kmer_union.begin(), kmer_union.end());
-    // kmer_union.resize(std::distance(kmer_union.begin(), ip));
+    if (s_mod == 0){
+        set_union(kdb.begin(), kdb.end(), kqr.begin(), kqr.end(), back_inserter(kmer_result));
+    } else if (s_mod == 1) {
+        set_intersection(kdb.begin(), kdb.end(), kqr.begin(), kqr.end(), back_inserter(kmer_result));
+    } else if (s_mod == 2) {
+        set_difference(kdb.begin(), kdb.end(), kqr.begin(), kqr.end(), back_inserter(kmer_result));
+    } else {
+        cerr << "fatal error! invalid set operation mode" << s_mod << endl;
+        exit(EXIT_FAILURE);
+    }
+    // ip = unique(kmer_result.begin(), kmer_result.end());
+    // ip = unique(kmer_result.begin(), kmer_result.end());
+    // kmer_result.resize(std::distance(kmer_result.begin(), ip));
     cerr << "Done!\n" << "It takes " << (chrono_time() - timeit) / 1000 << " secs for merging" << endl;
-    cerr << "the kmer union has " << kmer_union.size() << " unique kmers\n";
+    cerr << "the merged kmer set has " << kmer_result.size() << " unique kmers\n";
 
     char seq_buf[k+1];
     ofstream fh(out_path, ofstream::out | ofstream::binary);
 
-    for (ip = kmer_union.begin(); ip != kmer_union.end(); ++ip) {
+    for (ip = kmer_result.begin(); ip != kmer_result.end(); ++ip) {
         seq_decode(seq_buf, k+1, *ip, code_dict, b_mask);    
         fh << seq_buf << "\n";
         // fh << *ip << "\n";
@@ -241,15 +255,15 @@ int main(int argc, char** argv){
             exit(EXIT_FAILURE);
         } else {
             if (1 <= k && k <=4){
-                vfkmrz_bunion<uint_fast8_t>(argv[k1_i], argv[k2_i]);		
+                vfkmrz_bsetopt<uint_fast8_t>(argv[k1_i], argv[k2_i]);		
             } else if (5 <= k && k <= 8) {
-                vfkmrz_bunion<uint_fast16_t>(argv[k1_i], argv[k2_i]);		
+                vfkmrz_bsetopt<uint_fast16_t>(argv[k1_i], argv[k2_i]);		
             } else if (8 <= k && k <= 16) {
-                vfkmrz_bunion<uint_fast32_t>(argv[k1_i], argv[k2_i]);		
+                vfkmrz_bsetopt<uint_fast32_t>(argv[k1_i], argv[k2_i]);		
             } else if (17 <= k && k <= 32) {
-                vfkmrz_bunion<uint_fast64_t>(argv[k1_i], argv[k2_i]);		
+                vfkmrz_bsetopt<uint_fast64_t>(argv[k1_i], argv[k2_i]);		
             } else if (33 <= k && k <= 128) {
-                vfkmrz_bunion<uint64_t>(argv[k1_i], argv[k2_i]);		
+                vfkmrz_bsetopt<uint64_t>(argv[k1_i], argv[k2_i]);		
             } else {
                 exit(EXIT_FAILURE);
             }

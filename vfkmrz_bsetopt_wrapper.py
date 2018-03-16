@@ -5,15 +5,23 @@ from operator import itemgetter
 from collections import defaultdict, Counter
 from time import time
 
+mode_map={
+    "union":0,
+    "intersect":1,
+    "difference":2
+}
+
 def parse_args():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         usage=argparse.SUPPRESS,
-        description="""Usage: python vfkmrz_bunion_wrapper.py -1 <m1> -2 <m2> [--out <out>]""")
+        description="""Usage: python vfkmrz_bsetopt_wrapper.py -1 <m1> -2 <m2> [--out <out>]""")
     parser.add_argument('-k1', type=str, dest='m1', required=True,
         help="""path to the first kmer list""")
     parser.add_argument('-k2', type=str, dest='m2', required=True,
         help="""path to the second kmer list""")
+    parser.add_argument('--mode', dest='opt_mode', default='union', type=str, 
+        help="""Set operation to perform on two kmer lists, valid values: union [default], intersect and difference""")
     parser.add_argument('--out', type=str, dest='output', default='/dev/stdout',
         help="""Path to output file (/dev/stdout)""")
     parser.add_argument('--k', dest='kmer_size', default=0, type=int,
@@ -51,12 +59,15 @@ def run_command(cmd, env=None):
         return out, err
 
 def main():
-    sys.stderr.write("\n[bunion] bit encoding kmer lists and searching the union set\n")
+    sys.stderr.write("\n[bsetopt] bit encoding kmer lists and searching the union set\n")
     
     args = parse_args()
 
     dat1_path = args["m1"]
     dat2_path = args["m2"]
+
+    opt_mode = args["opt_mode"]
+    assert opt_mode in mode_map
 
     output = args["output"]
     
@@ -73,19 +84,19 @@ def main():
     else:
         kmer_size = k1
 
-    do_vfkmrz_bunion(dat1_path, dat2_path, kmer_size, output, overwrite)
+    do_vfkmrz_bsetopt(dat1_path, dat2_path, kmer_size, output, opt_mode, overwrite)
 
 
-def do_vfkmrz_bunion(dat1_path, dat2_path, kmer_size, output, overwrite=True):
-    vfkmrz_paths, vfkmrz_params = vfkmrz_prepare(dat1_path, dat2_path, kmer_size, output)
+def do_vfkmrz_bsetopt(dat1_path, dat2_path, kmer_size, output, opt_mode='union', overwrite=True):
+    vfkmrz_paths, vfkmrz_params = vfkmrz_prepare(dat1_path, dat2_path, kmer_size, output, opt_mode, overwrite)
 
     if os.path.isfile(vfkmrz_params["dat1_path"]) and os.path.isfile(vfkmrz_params["dat2_path"]):
-        compile_vfkmrz_atom(vfkmrz_paths, vfkmrz_params, overwrite)
+        compile_vfkmrz_atom(vfkmrz_paths, vfkmrz_params)
         output = run_vfkmrz_atom(vfkmrz_paths, vfkmrz_params)
 
     return output
 
-def compile_vfkmrz_atom(vfkmrz_paths, vfkmrz_params, overwrite=True):
+def compile_vfkmrz_atom(vfkmrz_paths, vfkmrz_params):
     k = vfkmrz_params["kmer_size"]
 
     sys.stderr.write("[compiling vfkmrz]\n")
@@ -95,33 +106,35 @@ def compile_vfkmrz_atom(vfkmrz_paths, vfkmrz_params, overwrite=True):
     para_str = "{}".format(k)
     hash_val = hashlib.md5(para_str).hexdigest()
 
-    vfkmrz_paths["vfkmrz_bunion_src"] = vfkmrz_paths["vfkmrz_src"] + "/" + "vfkmrz_bunion.cpp"
-    vfkmrz_paths["vfkmrz_bunion_tmp"] = "{}/{}_fastq.cpp".format(vfkmrz_paths["vfkmrz_tmp"], hash_val)
-    vfkmrz_paths["vfkmrz_bunion_bin"] = "{}/{}_bunion".format(vfkmrz_paths["vfkmrz_bin"], hash_val)
+    vfkmrz_paths["vfkmrz_bsetopt_src"] = vfkmrz_paths["vfkmrz_src"] + "/" + "vfkmrz_bsetopt.cpp"
+    vfkmrz_paths["vfkmrz_bsetopt_tmp"] = "{}/{}_bsetopt.cpp".format(vfkmrz_paths["vfkmrz_tmp"], hash_val)
+    vfkmrz_paths["vfkmrz_bsetopt_bin"] = "{}/{}_bsetopt".format(vfkmrz_paths["vfkmrz_bin"], hash_val)
 
     vfkmrz_paths["vfkmrz_output_tmp"] = "{}/{}.out".format(vfkmrz_paths["vfkmrz_tmp"], hash_val)
     vfkmrz_paths["vfkmrz_errput_tmp"] = "{}/{}.err".format(vfkmrz_paths["vfkmrz_tmp"], hash_val)
 
 
-    if os.path.isfile(vfkmrz_paths["vfkmrz_bunion_bin"]) and (overwrite == False):
+    if os.path.isfile(vfkmrz_paths["vfkmrz_bsetopt_bin"]) and (vfkmrz_params['overwrite'] == False):
         sys.stderr.write("compiled binaries for vfkmrz were found, skip compilation\n")
         sys.stderr.write("or use --compile-overwrite to overwrite)\n")
         pass
     else:
-        vfkmrz_bunion_lines = []
-        with open(vfkmrz_paths["vfkmrz_bunion_src"], "r") as fh:
+        vfkmrz_bsetopt_lines = []
+        with open(vfkmrz_paths["vfkmrz_bsetopt_src"], "r") as fh:
             for line in fh:
                 line = line.rstrip()
                 if "constexpr auto k = 31;" == line:
-                    vfkmrz_bunion_lines.append("constexpr auto k = {};".format(k))
+                    vfkmrz_bsetopt_lines.append("constexpr auto k = {};".format(k))
+                elif "constexpr auto s_mod = 0;" == line:
+                    vfkmrz_bsetopt_lines.append("constexpr auto s_mod = {};".format(mode_map[vfkmrz_params["opt_mode"]]))
                 else:
-                    vfkmrz_bunion_lines.append(line)
+                    vfkmrz_bsetopt_lines.append(line)
 
-        with open(vfkmrz_paths["vfkmrz_bunion_tmp"], "w") as fh:
-            fh.write("\n".join(vfkmrz_bunion_lines))
+        with open(vfkmrz_paths["vfkmrz_bsetopt_tmp"], "w") as fh:
+            fh.write("\n".join(vfkmrz_bsetopt_lines))
 
         command = ""
-        command += "g++ -O3 --std=c++11 {} -o {} ".format(vfkmrz_paths["vfkmrz_bunion_tmp"], vfkmrz_paths["vfkmrz_bunion_bin"])
+        command += "g++ -O3 --std=c++11 {} -o {} ".format(vfkmrz_paths["vfkmrz_bsetopt_tmp"], vfkmrz_paths["vfkmrz_bsetopt_bin"])
 
         sys.stderr.write("{}compiling vfkmrz\n".format(" "*4))
         sys.stderr.write("{}{}\n".format(" "*8, command))
@@ -131,9 +144,9 @@ def compile_vfkmrz_atom(vfkmrz_paths, vfkmrz_params, overwrite=True):
 
         sys.stderr.write("{}vfkmrz compilation done!\n".format(" "*4))
         sys.stderr.write("{}vfkmrz binary paths:\n".format(" "*4))
-        sys.stderr.write("{}vfkmrz_fastq: {}\n".format(" "*8, vfkmrz_paths["vfkmrz_bunion_bin"]))
+        sys.stderr.write("{}vfkmrz_bsetopt: {}\n".format(" "*8, vfkmrz_paths["vfkmrz_bsetopt_bin"]))
 
-    return os.path.isfile(vfkmrz_paths["vfkmrz_bunion_bin"]) 
+    return os.path.isfile(vfkmrz_paths["vfkmrz_bsetopt_bin"]) 
 
 def run_vfkmrz_atom(vfkmrz_paths, vfkmrz_params):
     sys.stderr.write("[executing vfkmrz]\n")
@@ -146,7 +159,7 @@ def run_vfkmrz_atom(vfkmrz_paths, vfkmrz_params):
     sys.stderr.write("{}input data path (2): {}\n".format(" "*8, dat2_path))
 
     command = ""
-    command += vfkmrz_paths["vfkmrz_bunion_bin"]
+    command += vfkmrz_paths["vfkmrz_bsetopt_bin"]
     command += " -k1 "
     command += vfkmrz_params["dat1_path"]
     command += " -k2 "
@@ -168,11 +181,9 @@ def run_vfkmrz_atom(vfkmrz_paths, vfkmrz_params):
 
     return vfkmrz_params["vfkmrz_output"]
 
-def vfkmrz_prepare(dat1_path, dat2_path, kmer_size, output):
+def vfkmrz_prepare(dat1_path, dat2_path, kmer_size, output, opt_mode="union", overwrite=True):
     vfkmrz_paths = prepare_vfkmrz_paths()
-
-    vfkmrz_params = prepare_vfkmrz_params(dat1_path, dat2_path, kmer_size)
-    vfkmrz_params["vfkmrz_output"] = output
+    vfkmrz_params = prepare_vfkmrz_params(dat1_path, dat2_path, kmer_size, output, opt_mode, overwrite)
 
     return vfkmrz_paths, vfkmrz_params
 
@@ -202,8 +213,6 @@ def prepare_vfkmrz_paths():
     vfkmrz_paths["vfkmrz_bin"] = bin_dir
     vfkmrz_paths["vfkmrz_tmp"] = tmp_dir
 
-    vfkmrz_paths["vfkmrz_bunion_src"] = "{}/vfkmrz_fastq.cpp".format(src_dir)
-
     sys.stderr.write("{}vfkmrz path tree preparation done!\n".format(" "*4))
     sys.stderr.write("{}vfkmrz paths generated.\n".format(" "*4))
     sys.stderr.write("{}src direcory: {}\n".format(" "*8, vfkmrz_paths["vfkmrz_src"]))
@@ -212,7 +221,7 @@ def prepare_vfkmrz_paths():
 
     return vfkmrz_paths
 
-def prepare_vfkmrz_params(dat1_path, dat2_path, kmer_size):
+def prepare_vfkmrz_params(dat1_path, dat2_path, kmer_size, output, opt_mode='union', overwrite=True):
     sys.stderr.write("[preparing parameters for vfkmrz]\n")
 
     vfkmrz_params = {}
@@ -220,6 +229,9 @@ def prepare_vfkmrz_params(dat1_path, dat2_path, kmer_size):
     vfkmrz_params["dat1_path"] = dat1_path
     vfkmrz_params["dat2_path"] = dat2_path
     vfkmrz_params["kmer_size"] = kmer_size
+    vfkmrz_params["opt_mode"] = opt_mode
+    vfkmrz_params["overwrite"] = overwrite 
+    vfkmrz_params["vfkmrz_output"] = output
 
     sys.stderr.write("{}vfkmrz parameter preparation done!\n".format(" "*4))
 
@@ -229,7 +241,7 @@ def search_vfkmrz_src():
     parent_dir = ""
     src_dir = ""
 
-    targets = ["vfkmrz_bunion.cpp"]
+    targets = ["vfkmrz_bsetopt.cpp"]
 
     sys.stderr.write("[looking for vfkmrz]\n")
 

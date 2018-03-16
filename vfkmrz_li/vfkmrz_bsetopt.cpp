@@ -24,6 +24,11 @@ using namespace std;
 // global variable declaration starts here
 constexpr auto k = 31;
 
+// set operation mode
+// valid values: 0, 1
+// 0 is set union operation, 1 is set intersection operation
+constexpr auto s_mod = 0;
+
 // parameters for <unistd.h> file read; from the source of GNU coreutils wc
 constexpr auto step_size = 256 * 1024 * 1024;
 constexpr auto buffer_size = 256 * 1024 * 1024;
@@ -197,12 +202,16 @@ void vfkmrz_bunion(const char* k1_path, const char* k2_path) {
     vector<int_type> kmer_union;
 
     cerr << "start merging two vectors." << endl;
-    set_union(kdb.begin(), kdb.end(), kqr.begin(), kqr.end(), back_inserter(kmer_union));
+    if s_mod == 0
+        set_bunion(kdb.begin(), kdb.end(), kqr.begin(), kqr.end(), back_inserter(kmer_union));
+    else:
+        set_intersection(kdb.begin(), kdb.end(), kqr.begin(), kqr.end(), back_inserter(kmer_union));
+
     // ip = unique(kmer_union.begin(), kmer_union.end());
     // ip = unique(kmer_union.begin(), kmer_union.end());
     // kmer_union.resize(std::distance(kmer_union.begin(), ip));
     cerr << "Done!\n" << "It takes " << (chrono_time() - timeit) / 1000 << " secs for merging" << endl;
-    cerr << "the kmer union has " << kmer_union.size() << " unique kmers\n";
+    cerr << "the merged kmer set has " << kmer_union.size() << " unique kmers\n";
 
     char seq_buf[k+1];
     ofstream fh(out_path, ofstream::out | ofstream::binary);
